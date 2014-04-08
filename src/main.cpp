@@ -2,6 +2,7 @@
 // Copyright (c) 2009-2012 The Bitcoin developers
 // Copyright (c) 2013 The Blakecoin developers
 // Copyright (c) 2013 The Litecoin developers
+// Copyright (c) 2014 Fuguecoin developers http://fuguecoin.org
 // Copyright (c) 2014 GroestlCoin developers http://GroestlCoin.org
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
