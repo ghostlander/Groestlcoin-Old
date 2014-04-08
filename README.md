@@ -1,6 +1,6 @@
 GroestlCoin Wallet
 
-http://www.GroestlCoin.com
+http://www.GroestlCoin.org
 
 License
 
