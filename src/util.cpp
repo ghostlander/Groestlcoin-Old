@@ -1106,7 +1106,7 @@ void ReadConfigFile(map<string, string>& mapSettingsRet,
     if (!streamConfig1.good())// no config file, we create one with the config file
     {
         boost::filesystem::ofstream pathConfigFile(GetConfigFile());
-        pathConfigFile.write("listen=1\nserver=1\ndaemon=1\nrpcuser=u\nrpcpassword=p\nrpcport=1441\naddnode=31.220.48.98",84);
+        pathConfigFile.write("listen=1\nserver=1\ndaemon=1\nrpcuser=u\nrpcpassword=p\nrpcport=1441\naddnode=groestlcoin.net",87);
         pathConfigFile.flush();
         pathConfigFile.close();
 
