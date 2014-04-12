@@ -27,13 +27,13 @@ INCLUDEPATHS= \
  -I"$(CURDIR)" \
  -I"c:/db/boost_1_55_0" \
  -I"c:/db/db-4.8.30.NC/build_unix" \
- -I"c:/db/openssl-1.0.1e/include"
+ -I"c:/db/openssl-1.0.1g/include"
  
 LIBPATHS= \
  -L"$(CURDIR)/leveldb" \
  -L"c:/db/boost_1_55_0/stage/lib" \
  -L"c:/db/db-4.8.30.NC/build_unix" \
- -L"c:/db/openssl-1.0.1e"
+ -L"c:/db/openssl-1.0.1g"
 
 LIBS= \
  -l leveldb \

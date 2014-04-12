@@ -23,8 +23,8 @@ CONFIG += thread
 #win32:BOOST_LIB_PATH=C:/db/boost_1_55_0/stage/lib
 #win32:BDB_INCLUDE_PATH=C:/db/db-4.8.30.NC/build_unix
 #win32:BDB_LIB_PATH=C:/db/db-4.8.30.NC/build_unix
-#win32:OPENSSL_INCLUDE_PATH=C:/db/openssl-1.0.1e_32/include
-#win32:OPENSSL_LIB_PATH=C:/db/openssl-1.0.1e_32
+#win32:OPENSSL_INCLUDE_PATH=C:/db/openssl-1.0.1g_32/include
+#win32:OPENSSL_LIB_PATH=C:/db/openssl-1.0.1g_32
 #win32:MINIUPNPC_INCLUDE_PATH=C:/db/
 #win32:MINIUPNPC_LIB_PATH=C:/db/miniupnpc
 
