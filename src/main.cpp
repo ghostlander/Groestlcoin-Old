@@ -1311,7 +1311,7 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
             return DarkGravityWave3(pindexLast, pblock);
     }
 
-    DarkGravityWave(pindexLast, pblock);
+    return DarkGravityWave(pindexLast, pblock);
 }
 
 
