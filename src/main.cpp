@@ -1238,11 +1238,80 @@ unsigned int static DarkGravityWave(const CBlockIndex* pindexLast, const CBlockH
      
     return bnNew.GetCompact();
 }
+
+unsigned int static DarkGravityWave3(const CBlockIndex* pindexLast, const CBlockHeader *pblock) {
+    /* current difficulty formula, darkcoin - DarkGravity v3, written by Evan Duffield - evan@darkcoin.io */
+    const CBlockIndex *BlockLastSolved = pindexLast;
+    const CBlockIndex *BlockReading = pindexLast;
+    const CBlockHeader *BlockCreating = pblock;
+    BlockCreating = BlockCreating;
+    int64 nActualTimespan = 0;
+    int64 LastBlockTime = 0;
+    int64 PastBlocksMin = 24;
+    int64 PastBlocksMax = 24;
+    int64 CountBlocks = 0;
+    CBigNum PastDifficultyAverage;
+    CBigNum PastDifficultyAveragePrev;
+
+    if (BlockLastSolved == NULL || BlockLastSolved->nHeight == 0 || BlockLastSolved->nHeight < PastBlocksMin) { 
+        return bnProofOfWorkLimit.GetCompact(); 
+    }
+        
+    for (unsigned int i = 1; BlockReading && BlockReading->nHeight > 0; i++) {
+        if (PastBlocksMax > 0 && i > PastBlocksMax) { break; }
+        CountBlocks++;
+
+        if(CountBlocks <= PastBlocksMin) {
+            if (CountBlocks == 1) { PastDifficultyAverage.SetCompact(BlockReading->nBits); }
+            else { PastDifficultyAverage = ((PastDifficultyAveragePrev * CountBlocks)+(CBigNum().SetCompact(BlockReading->nBits))) / (CountBlocks+1); }
+            PastDifficultyAveragePrev = PastDifficultyAverage;
+        }
+
+        if(LastBlockTime > 0){
+            int64 Diff = (LastBlockTime - BlockReading->GetBlockTime());
+            nActualTimespan += Diff;
+        }
+        LastBlockTime = BlockReading->GetBlockTime();      
+
+        if (BlockReading->pprev == NULL) { assert(BlockReading); break; }
+        BlockReading = BlockReading->pprev;
+    }
+    
+    CBigNum bnNew(PastDifficultyAverage);
+
+    int64 nTargetTimespan = CountBlocks*nTargetSpacing;
+
+    if (nActualTimespan < nTargetTimespan/3)
+        nActualTimespan = nTargetTimespan/3;
+    if (nActualTimespan > nTargetTimespan*3)
+        nActualTimespan = nTargetTimespan*3;
+
+    // Retarget
+    bnNew *= nActualTimespan;
+    bnNew /= nTargetTimespan;
+
+    if (bnNew > bnProofOfWorkLimit){
+        bnNew = bnProofOfWorkLimit;
+    }
+     
+    return bnNew.GetCompact();
+}
 //----------------------
 
 unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock)
 {
-return DarkGravityWave(pindexLast, pblock);
+    if (fTestNet)
+    {//test net, DGWv3 since block 10
+        if (pindexLast->nHeight >= (10 - 1))
+            return DarkGravityWave3(pindexLast, pblock);
+    }
+    else
+    {//main net, DGWv3 since block 100,000
+        if (pindexLast->nHeight >= (100000 - 1))
+            return DarkGravityWave3(pindexLast, pblock);
+    }
+
+    return DarkGravityWave(pindexLast, pblock);
 }
 
 
@@ -2238,8 +2307,20 @@ bool CBlock::AcceptBlock(CValidationState &state, CDiskBlockPos *dbp)
         map<uint256, CBlockIndex*>::iterator mi = mapBlockIndex.find(hashPrevBlock);
         if (mi == mapBlockIndex.end())
             return state.DoS(10, error("AcceptBlock() : prev block not found"));
+
         pindexPrev = (*mi).second;
         nHeight = pindexPrev->nHeight+1;
+
+        // Prevent blocks from too far in the future [since GroestlCoin version 2.0 at block 100,000]
+        if (fTestNet || (nHeight >= 100000))
+        {
+            if (GetBlockTime() > (GetAdjustedTime() + 15 * 60))
+                return error("AcceptBlock() : block's timestamp too far in the future");
+
+            // Check timestamp is not too far in the past
+            if (GetBlockTime() <= (pindexPrev->GetBlockTime() - 15 * 60))
+                return error("AcceptBlock() : block's timestamp is too early compared to last block");
+        }
 
         // Check proof of work
         if (nBits != GetNextWorkRequired(pindexPrev, this))
