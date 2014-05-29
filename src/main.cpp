@@ -1131,9 +1131,37 @@ int64 static GetBlockSubsidy(int nHeight){
     return nSubsidy;
 }
 
+int64 static GetBlockSubsidy120000(int nHeight)
+{
+	// Subsidy is reduced by 10% every day (1440 blocks)
+	int64 nSubsidy = 250 * COIN;
+	int exponent = ((nHeight - 120000) / 1440);
+	for(int i=0; i<exponent; i++)
+		nSubsidy = (nSubsidy * 45) / 50;
+
+	return nSubsidy;
+}
+
+int64 static GetBlockSubsidy150000(int nHeight)
+{
+	// Subsidy is reduced by 1% every week (10080 blocks)
+	int64 nSubsidy = 25 * COIN;
+	int exponent = ((nHeight - 150000) / 10080);
+	for(int i=0; i<exponent; i++)
+		nSubsidy = (nSubsidy * 99) / 100;
+
+	return (nSubsidy < minimumSubsidy)? minimumSubsidy : nSubsidy;
+}
+
 int64 static GetBlockValue(int nHeight, int64 nFees, unsigned int nBits)
 {
-    return GetBlockSubsidy(nHeight) + nFees;
+	if(nHeight >= 150000)
+		return GetBlockSubsidy150000(nHeight) + nFees;
+
+	if(nHeight >= 120000)
+		return GetBlockSubsidy120000(nHeight) + nFees;
+
+	return GetBlockSubsidy(nHeight) + nFees;
 }
 
 //
