@@ -1,5 +1,3 @@
-kU1ngY2 
-
 GroestlCoin Wallet
 
 http://www.GroestlCoin.org
