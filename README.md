@@ -7,7 +7,7 @@ https://bitcointalk.org/index.php?topic=525926.0
 
 Copyright (c) 2009-2014 Bitcoin Developers
 
-Copyright (c) 2013-2015 Groestlcoin Developers
+Copyright (c) 2014-2015 Groestlcoin Developers
 
 What is Groestlcoin?
 -----------------
