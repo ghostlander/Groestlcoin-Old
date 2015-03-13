@@ -1,7 +1,12 @@
 Groestlcoin integration/staging tree
 =================================
+Forked from Bitcoin reference wallet 0.8.6
+
+Groestlcoin QT Wallet
 
 http://www.groestlcoin.org
+
+The algorithm was written as a candidate for sha3
 
 https://bitcointalk.org/index.php?topic=525926.0
 
