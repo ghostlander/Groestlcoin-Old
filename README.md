@@ -1,6 +1,6 @@
 Groestlcoin integration/staging tree
 =================================
-Forked from Bitcoin reference wallet 0.8.6
+Forked from Bitcoin reference wallet 0.8.9
 
 Groestlcoin QT Wallet
 
