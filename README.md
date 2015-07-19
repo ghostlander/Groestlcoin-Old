@@ -76,6 +76,15 @@ used for manual QA testing
 Large changes should have a test plan, and should be tested by somebody other
 than the developer who wrote the code.
 
+Translations
+------------
+
+**Important**: We do not accept translation changes as GitHub pull requests because the next
+pull from Transifex would automatically overwrite them again.
+
+We only accept translation fixes that are submitted through [Bitcoin Core's Transifex page](https://www.transifex.com/projects/p/bitcoin/).
+Translations are converted to Groestlcoin periodically.
+
 Development tips and tricks
 ---------------------------
 
