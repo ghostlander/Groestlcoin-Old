@@ -10,7 +10,7 @@ The algorithm was written as a candidate for sha3
 
 https://bitcointalk.org/index.php?topic=525926.0
 
-Copyright (c) 2009-2014 Bitcoin Developers
+Copyright (c) 2009-2015 Bitcoin Developers
 
 Copyright (c) 2014-2015 Groestlcoin Developers
 
