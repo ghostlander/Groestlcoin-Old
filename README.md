@@ -10,9 +10,9 @@ The algorithm was written as a candidate for sha3
 
 https://bitcointalk.org/index.php?topic=525926.0
 
-Copyright (c) 2009-2015 Bitcoin Developers
+Copyright (c) 2009-2015 The Bitcoin Core Developers
 
-Copyright (c) 2014-2015 Groestlcoin Developers
+Copyright (c) 2014-2015 The Groestlcoin Core Developers
 
 What is Groestlcoin?
 -----------------
@@ -42,8 +42,7 @@ If it is a simple/trivial/non-controversial change, then one of the Groestlcoin
 development team members simply pulls it.
 
 If it is a *more complicated or potentially controversial* change, then the patch
-submitter will be asked to start a discussion (if they haven't already) on the
-[mailing list](http://sourceforge.net/mailarchive/forum.php?forum_name=groestlcoin-development).
+submitter will be asked to start a discussion 
 
 The patch will be accepted if there is broad consensus that it is a good thing.
 Developers should expect to rework and resubmit patches if the code doesn't
@@ -51,7 +50,7 @@ match the project's coding conventions (see [doc/coding.md](doc/coding.md)) or a
 controversial.
 
 The `master` branch is regularly built and tested, but is not guaranteed to be
-completely stable. [Tags](https://github.com/bitcoin/groestlcoin/tags) are created
+completely stable. [Tags](https://github.com/groestlcoin/groestlcoin/tags) are created
 regularly to indicate new official, stable release versions of Groestlcoin.
 
 Testing
