@@ -263,6 +263,8 @@ static const CRPCCommand vRPCCommands[] =
     { "gettxout",               &gettxout,               true,      false },
     { "lockunspent",            &lockunspent,            false,     false },
     { "listlockunspent",        &listlockunspent,        false,     false },
+    { "setworkaux",             &setworkaux,             true,      false },
+    { "getworkaux",             &getworkaux,             true,      false },
 };
 
 CRPCTable::CRPCTable()
@@ -1022,7 +1024,7 @@ json_spirit::Value CRPCTable::execute(const std::string &strMethod, const json_s
     // Find method
     const CRPCCommand *pcmd = tableRPC[strMethod];
     if (!pcmd)
-        throw JSONRPCError(RPC_METHOD_NOT_FOUND, "Method not found");
+        throw JSONRPCError(RPC_METHOD_NOT_FOUND, "Method not found!");
 
     // Observe safe mode
     string strWarning = GetWarnings("rpc");

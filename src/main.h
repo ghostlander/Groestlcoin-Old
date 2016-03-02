@@ -21,6 +21,7 @@ class CReserveKey;
 class CAddress;
 class CInv;
 class CNode;
+class CAuxPow;
 
 struct CBlockIndexWorkComparator;
 
@@ -185,8 +186,8 @@ bool VerifySignature(const CCoins& txFrom, const CTransaction& txTo, unsigned in
 /** Abort with a message */
 bool AbortNode(const std::string &msg);
 
-
-
+extern std::map<std::string, CScript> mapAuxCoinbases;
+void FormatDataBuffer(CBlock *pblock, unsigned int *pdata);
 
 
 
@@ -1254,6 +1255,31 @@ public:
     // extract the matching txid's represented by this partial merkle tree.
     // returns the merkle root, or 0 in case of failure
     uint256 ExtractMatches(std::vector<uint256> &vMatch);
+};
+
+
+template <typename Stream>
+int ReadWriteAuxPow(Stream& s, const boost::shared_ptr<CAuxPow>& auxpow, int nType,
+  int nVersion, CSerActionSerialize ser_action);
+ 
+template <typename Stream>
+int ReadWriteAuxPow(Stream& s, boost::shared_ptr<CAuxPow>& auxpow, int nType,
+  int nVersion, CSerActionUnserialize ser_action);
+ 
+template <typename Stream>
+int ReadWriteAuxPow(Stream& s, const boost::shared_ptr<CAuxPow>& auxpow, int nType,
+  int nVersion, CSerActionGetSerializeSize ser_action);
+  
+enum {
+    // primary version
+    BLOCK_VERSION_DEFAULT        = (1 << 0), 
+
+    // modifiers
+    BLOCK_VERSION_AUXPOW         = (1 << 8),
+ 
+    // bits allocated for chain ID
+    BLOCK_VERSION_CHAIN_START    = (1 << 16),
+    BLOCK_VERSION_CHAIN_END      = (1 << 30),
 };
 
 

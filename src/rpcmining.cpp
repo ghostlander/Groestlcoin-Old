@@ -7,6 +7,7 @@
 #include "db.h"
 #include "init.h"
 #include "bitcoinrpc.h"
+#include "auxpow.h"
 
 using namespace json_spirit;
 using namespace std;
@@ -522,4 +523,201 @@ Value submitblock(const Array& params, bool fHelp)
         return "rejected"; // TODO: report validation state
 
     return Value::null;
+}
+
+Value setworkaux(const Array& params, bool fHelp) {
+
+    if((fHelp || params.size() < 1) || (params.size() > 2))
+      throw(runtime_error(
+            "setworkaux <id> [data]\n"
+            "If [data] is not specified, deletes aux.\n"
+      ));
+
+    std::string strId = params[0].get_str();
+    if(params.size() > 1) {
+        std::vector<unsigned char> vchData = ParseHex(params[1].get_str());
+        mapAuxCoinbases[strId] = CScript(vchData);
+    } else {
+        mapAuxCoinbases.erase(strId);
+    }
+
+    return(true);
+}
+
+Value getworkaux(const Array& params, bool fHelp) {
+    unsigned int i;
+
+    if (fHelp || params.size() < 1)
+        throw runtime_error(
+            "getworkaux <aux>\n"
+            "getworkaux '' <data>\n"
+            "getworkaux 'submit' <data>\n"
+            "getworkaux '' <data> <chain-index> <branch>*\n"
+            " get work with auxiliary data in coinbase, for multichain mining\n"
+            "<aux> is the merkle root of the auxiliary chain block hashes, concatenated with the aux chain merkle tree size and a nonce\n"
+            "<chain-index> is the aux chain index in the aux chain merkle tree\n"
+            "<branch> is the optional merkle branch of the aux chain\n"
+            "If <data> is not specified, returns formatted hash data to work on:\n"
+            "  \"data\" : block data\n"
+            "  \"target\" : little endian hash target\n"
+            "If <data> is specified and 'submit', tries to solve the block for this (parent) chain and returns true if it was successful."
+            "If <data> is specified and empty first argument, returns the aux merkle root, with size and nonce."
+            "If <data> and <chain-index> are specified, creates an auxiliary proof of work for the chain specified and returns:\n"
+            "  \"aux\" : merkle root of auxiliary chain block hashes\n"
+            "  \"auxpow\" : aux proof of work to submit to aux chain\n"
+            );
+
+    if(vNodes.empty())
+      throw(JSONRPCError(-9, "Wallet is not connected!"));
+
+    if(IsInitialBlockDownload())
+      throw(JSONRPCError(-10, "Wallet is downloading blocks..."));
+
+    static map<uint256, pair<CBlock*, unsigned int> > mapNewBlock;
+    static vector<CBlockTemplate*> vNewBlockTemplate;
+
+    if (params.size() == 1)
+    {
+        static vector<unsigned char> vchAuxPrev;
+        vector<unsigned char> vchAux = ParseHex(params[0].get_str());
+
+        // Update block
+        static unsigned int nTransactionsUpdatedLast;
+        static CBlockIndex* pindexPrev;
+        static int64 nStart;
+        static CBlockTemplate* pblocktemplate;
+
+        if (pindexPrev != pindexBest ||
+            vchAux != vchAuxPrev ||
+            (nTransactionsUpdated != nTransactionsUpdatedLast && GetTime() - nStart > 60))
+        {
+            if (pindexPrev != pindexBest)
+            {
+                // Deallocate old blocks since they're obsolete now
+                mapNewBlock.clear();
+                BOOST_FOREACH(CBlockTemplate* pblocktemplate, vNewBlockTemplate)
+                    delete pblocktemplate;
+                vNewBlockTemplate.clear();
+            }
+
+            // Clear pindexPrev so future getworks make a new block, despite any failures from here on
+            pindexPrev = NULL;
+
+            // Store the pindexBest used before CreateNewBlock, to avoid races
+            nTransactionsUpdatedLast = nTransactionsUpdated;
+            CBlockIndex* pindexPrevNew = pindexBest;
+            vchAuxPrev = vchAux;
+            nStart = GetTime();
+
+            // Create new block
+            pblocktemplate = CreateNewBlock(*pMiningKey);
+            if (!pblocktemplate)
+                throw JSONRPCError(RPC_OUT_OF_MEMORY, "Out of memory");
+            vNewBlockTemplate.push_back(pblocktemplate);
+
+            // Need to update only after we know CreateNewBlock succeeded
+            pindexPrev = pindexPrevNew;
+        }
+        CBlock* pblock = &pblocktemplate->block; // pointer for convenience
+
+        // Update nTime
+        pblock->UpdateTime(pindexPrev);
+        pblock->nNonce = 0;
+
+        // Update nExtraNonce
+        static unsigned int nExtraNonce = 0;
+        IncrementExtraNonceWithAux(pblock, pindexPrev, nExtraNonce, vchAux);
+
+        // Save
+        mapNewBlock[pblock->hashMerkleRoot] = make_pair(pblock, nExtraNonce);
+
+        char pdata[128];
+        FormatDataBuffer(pblock, (uint *) pdata);
+
+        uint256 hashTarget = CBigNum().SetCompact(pblock->nBits).getuint256();
+
+        Object result;
+        result.push_back(Pair("data",     HexStr(BEGIN(pdata), END(pdata))));
+        result.push_back(Pair("target",   HexStr(BEGIN(hashTarget), END(hashTarget))));
+        return result;
+    }
+    else
+    {
+        if (params[0].get_str() != "submit" && params[0].get_str() != "")
+            throw JSONRPCError(-8, "<aux> must be the empty string or 'submit' if work is being submitted");
+        // Parse parameters
+        vector<unsigned char> vchData = ParseHex(params[1].get_str());
+        if (vchData.size() != 128)
+            throw JSONRPCError(-8, "Invalid parameter");
+        CBlock* pdata = (CBlock*)&vchData[0];
+
+        // Byte reverse
+        for(i = 0; i < 128/4; i++)
+            ((unsigned int*)pdata)[i] = ByteReverse(((unsigned int*)pdata)[i]);
+
+        // Get saved block
+        if (!mapNewBlock.count(pdata->hashMerkleRoot))
+            return false;
+        CBlock* pblock = mapNewBlock[pdata->hashMerkleRoot].first;
+        unsigned int nExtraNonce = mapNewBlock[pdata->hashMerkleRoot].second;
+
+        pblock->nTime = pdata->nTime;
+        pblock->nNonce = pdata->nNonce;
+
+        // Get the aux merkle root from the coinbase
+        CScript script = pblock->vtx[0].vin[0].scriptSig;
+        opcodetype opcode;
+        CScript::const_iterator pc = script.begin();
+        script.GetOp(pc, opcode);
+        script.GetOp(pc, opcode);
+        script.GetOp(pc, opcode);
+        if (opcode != OP_2)
+            throw runtime_error("invalid aux pow script");
+
+        vector<unsigned char> vchAux;
+        script.GetOp(pc, opcode, vchAux);
+
+        RemoveMergedMiningHeader(vchAux);
+
+        static CBlockIndex* pindexPrev;
+        pblock->vtx[0].vin[0].scriptSig = MakeCoinbaseWithAux(pindexPrev->nHeight + 1, nExtraNonce, vchAux);
+        pblock->hashMerkleRoot = pblock->BuildMerkleTree();
+
+        if (params.size() > 2)
+        {
+            // Requested aux proof of work
+            int nChainIndex = params[2].get_int();
+
+            CAuxPow pow(pblock->vtx[0]);
+
+            for(i = 3 ; i < params.size() ; i++) {
+                uint256 nHash;
+                nHash.SetHex(params[i].get_str());
+                pow.vChainMerkleBranch.push_back(nHash);
+            }
+
+            pow.SetMerkleBranch(pblock);
+            pow.nChainIndex = nChainIndex;
+            pow.parentBlock = *pblock;
+            CDataStream ss(SER_GETHASH | SER_BLOCKHEADERONLY, PROTOCOL_VERSION);
+            ss << pow;
+            Object result;
+            result.push_back(Pair("auxpow", HexStr(ss.begin(), ss.end())));
+            return result;
+        }
+        else
+        {
+            if (params[0].get_str() == "submit")
+            {
+                return CheckWork(pblock, *pwalletMain, *pMiningKey);
+            }
+            else
+            {
+                Object result;
+                result.push_back(Pair("aux", HexStr(vchAux.begin(), vchAux.end())));
+                result.push_back(Pair("hash", pblock->GetHash().GetHex()));
+                return result;
+            }
+        }
+    }
 }

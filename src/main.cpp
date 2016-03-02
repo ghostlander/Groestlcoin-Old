@@ -4246,6 +4246,35 @@ bool SendMessages(CNode* pto, bool fSendTrickle)
 // BitcoinMiner
 //
 
+void FormatDataBuffer(CBlock *pblock, uint *pdata) {
+    uint i;
+
+    struct {
+        int nVersion;
+        uint256 hashPrevBlock;
+        uint256 hashMerkleRoot;
+        uint nTime;
+        uint nBits;
+        uint nNonce;
+    } data;
+
+    data.nVersion       = pblock->nVersion;
+    data.hashPrevBlock  = pblock->hashPrevBlock;
+    data.hashMerkleRoot = pblock->hashMerkleRoot;
+    data.nTime          = pblock->nTime;
+    data.nBits          = pblock->nBits;
+    data.nNonce         = pblock->nNonce;
+
+    /* Block header size in bits */
+    pdata[31] = 640;
+    /* Convert LE to BE and copy */
+    for(i = 0; i < 20; i++)
+      pdata[i] = ByteReverse(((uint *) &data)[i]);
+    /* Erase the remaining part */
+    for(i = 20; i < 31; i++)
+      pdata[i] = 0;
+}
+
 int static FormatHashBlocks(void* pbuffer, unsigned int len)
 {
     unsigned char* pdata = (unsigned char*)pbuffer;
@@ -4622,6 +4651,7 @@ CBlockTemplate* CreateNewBlock(CReserveKey& reservekey)
     return pblocktemplate.release();
 }
 
+std::map<std::string, CScript> mapAuxCoinbases;
 
 void IncrementExtraNonce(CBlock* pblock, CBlockIndex* pindexPrev, unsigned int& nExtraNonce)
 {
@@ -4634,7 +4664,15 @@ void IncrementExtraNonce(CBlock* pblock, CBlockIndex* pindexPrev, unsigned int& 
     }
     ++nExtraNonce;
     unsigned int nHeight = pindexPrev->nHeight+1; // Height first in coinbase required for block.version=2
-    pblock->vtx[0].vin[0].scriptSig = (CScript() << nHeight << CBigNum(nExtraNonce)) + COINBASE_FLAGS;
+
+    CScript &scriptSig = pblock->vtx[0].vin[0].scriptSig;
+    scriptSig = CScript() << nHeight;
+
+    map<std::string, CScript>::iterator it;
+    for(it = mapAuxCoinbases.begin() ; it != mapAuxCoinbases.end(); ++it)
+      scriptSig += (*it).second;
+
+    pblock->vtx[0].vin[0].scriptSig = (scriptSig << CBigNum(nExtraNonce)) + COINBASE_FLAGS;
     assert(pblock->vtx[0].vin[0].scriptSig.size() <= 100);
 
     pblock->hashMerkleRoot = pblock->BuildMerkleTree();
